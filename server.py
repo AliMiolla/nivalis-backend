@@ -17,7 +17,7 @@ import hmac
 from io import BytesIO
 
 # MongoDB connection
-MONGO_URL = os.environ.get('MONGO_URL', 'mongodb+srv://nivalis_user:Nivalis4141.@nivalis.x55b73u.mongodb.net/?retryWrites=true&w=majority&appName=Nivalis')
+MONGO_URL = os.environ.get('MONGO_URL', 'mongodb+srv://nivalis_user:Nivalis4141@nivalis.x55b73u.mongodb.net/?retryWrites=true&w=majority&appName=Nivalis')
 
 try:
     client = MongoClient(MONGO_URL)
