@@ -17,7 +17,7 @@ import hmac
 from io import BytesIO
 
 # MongoDB connection
-MONGO_URL = os.environ.get('MONGO_URL', 'mongodb+srv://nivalis_admin:Nivalis2025@nivalis.x55b73u.mongodb.net/?retryWrites=true&w=majority&appName=Nivalis')
+MONGO_URL = os.environ.get('MONGO_URL', 'mongodb://localhost:27017/nival')
 
 try:
     client = MongoClient(MONGO_URL)
@@ -494,7 +494,7 @@ async def get_user_profile(request: Request):
         user_sessions.insert_one(new_session)
         
         # Check if user is admin
-        admin_emails = ["ali.miolla61@gmail.com", "test@admin.com", "admin@test.com"]
+        admin_emails = ["ali.miolla61@gmail.com", "test@admin.com", "admin@test.com", "yucelturkpk@gmail.com"]
         is_admin = user_data["email"] in admin_emails
         
         return {
@@ -541,7 +541,7 @@ async def verify_session(request: Request):
             raise HTTPException(status_code=401, detail="User not found")
         
         # Check if user is admin
-        admin_emails = ["ali.miolla61@gmail.com", "test@admin.com", "admin@test.com"]
+        admin_emails = ["ali.miolla61@gmail.com", "test@admin.com", "admin@test.com", "yucelturkpk@gmail.com"]
         is_admin = user["email"] in admin_emails
         
         return {
@@ -601,7 +601,7 @@ async def create_property(property_data: dict, request: Request):
             raise HTTPException(status_code=401, detail="Invalid or expired session")
         
         user = users.find_one({"id": session["user_id"]})
-        admin_emails = ["ali.miolla61@gmail.com", "test@admin.com", "admin@test.com"]
+        admin_emails = ["ali.miolla61@gmail.com", "test@admin.com", "admin@test.com", "yucelturkpk@gmail.com"]
         if not user or user["email"] not in admin_emails:
             raise HTTPException(status_code=403, detail="Admin access required")
         
@@ -698,7 +698,7 @@ async def update_property(property_id: str, property_data: dict, request: Reques
             raise HTTPException(status_code=401, detail="Invalid or expired session")
         
         user = users.find_one({"id": session["user_id"]})
-        admin_emails = ["ali.miolla61@gmail.com", "test@admin.com", "admin@test.com"]
+        admin_emails = ["ali.miolla61@gmail.com", "test@admin.com", "admin@test.com", "yucelturkpk@gmail.com"]
         if not user or user["email"] not in admin_emails:
             raise HTTPException(status_code=403, detail="Admin access required")
         
@@ -799,7 +799,7 @@ async def delete_property(property_id: str, request: Request):
             raise HTTPException(status_code=401, detail="Invalid or expired session")
         
         user = users.find_one({"id": session["user_id"]})
-        admin_emails = ["ali.miolla61@gmail.com", "test@admin.com", "admin@test.com"]
+        admin_emails = ["ali.miolla61@gmail.com", "test@admin.com", "admin@test.com", "yucelturkpk@gmail.com"]
         if not user or user["email"] not in admin_emails:
             raise HTTPException(status_code=403, detail="Admin access required")
         
@@ -884,3 +884,68 @@ async def get_google_map():
     except Exception as e:
         raise HTTPException(status_code=500, detail=f"Error fetching map: {str(e)}")
 
+# Frontend static file serving (for production)
+from fastapi.staticfiles import StaticFiles
+from fastapi.responses import FileResponse
+import os
+
+# Serve static files in production
+static_files_path = "/app/frontend/build"
+if os.path.exists(static_files_path):
+    app.mount("/static", StaticFiles(directory=f"{static_files_path}/static"), name="static")
+
+# Catch-all route for React Router (must be at the end)
+@app.get("/{full_path:path}")
+async def serve_react_app(full_path: str):
+    """Serve React app for any non-API routes"""
+    # If it's an API route, let it continue to 404
+    if full_path.startswith("api/"):
+        raise HTTPException(status_code=404, detail="API endpoint not found")
+    
+    # For favicon and other static files
+    if full_path in ["favicon.ico", "favicon-16x16.png", "favicon-32x32.png", "apple-touch-icon.png"]:
+        file_path = f"{static_files_path}/{full_path}"
+        if os.path.exists(file_path):
+            return FileResponse(file_path)
+    
+    # For React routes, serve index.html
+    index_path = f"{static_files_path}/index.html"
+    if os.path.exists(index_path):
+        return FileResponse(index_path, media_type="text/html")
+    
+    # Fallback - 404
+    raise HTTPException(status_code=404, detail="Page not found")
+
+# Initialize sample data - Only blog and footer content
+@app.on_event("startup")
+async def initialize_data():
+    try:
+        # Add sample blog posts if none exist
+        if blog_posts.count_documents({}) == 0:
+            sample_posts = [
+                {
+                    "id": str(uuid.uuid4()),
+                    "title_tr": "2024 Gayrimenkul Trendleri",
+                    "title_en": "2024 Real Estate Trends",
+                    "content_tr": "Bu yıl gayrimenkul sektöründe öne çıkan trendler...",
+                    "content_en": "This year's prominent trends in the real estate sector...",
+                    "created_at": datetime.now()
+                },
+                {
+                    "id": str(uuid.uuid4()),
+                    "title_tr": "Yatırım İpuçları",
+                    "title_en": "Investment Tips",
+                    "content_tr": "Gayrimenkul yatırımında dikkat edilmesi gerekenler...",
+                    "content_en": "What to pay attention to in real estate investment...",
+                    "created_at": datetime.now()
+                }
+            ]
+            blog_posts.insert_many(sample_posts)
+            
+        print("Sample blog data initialized")
+    except Exception as e:
+        print(f"Error initializing data: {e}")
+
+if __name__ == "__main__":
+    import uvicorn
+    uvicorn.run(app, host="0.0.0.0", port=8001)
